@@ -28,3 +28,6 @@ desktop.ini
 
 # Provenance notes -- internal only, disclose to client later
 _private/
+
+# Default CLI output
+ocr_output/

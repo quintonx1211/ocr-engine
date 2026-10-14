@@ -12,7 +12,9 @@ import sys
 
 def variant_dir_name() -> str:
     machine = platform.machine().lower()
-    is_64 = machine in ("amd64", "x86_64", "x64") or sys.maxsize > 2**32
+    # The DLL must match the interpreter, not the OS: 32-bit Python on
+    # 64-bit Windows still reports machine() == "AMD64".
+    is_64 = sys.maxsize > 2**32
 
     if sys.platform == "win32":
         return "windows-amd64" if is_64 else "windows-386"

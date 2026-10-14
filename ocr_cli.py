@@ -1,8 +1,10 @@
 """Command-line front end for ocr_wrapper.
 
-    python ocr_cli.py invoice.pdf                     # text to stdout
-    python ocr_cli.py *.pdf -o out/                   # one .txt per input
+    python ocr_cli.py invoice.pdf                     # -> ocr_output/invoice.txt
+    python ocr_cli.py *.pdf -o out/                   # one .txt per input into out/
+    python ocr_cli.py invoice.pdf --stdout            # print instead of writing files
     python ocr_cli.py scan.pdf --pages 1,3-5 -f json  # selected pages as JSON
+    python ocr_cli.py --platform                      # which platforms/ folder this machine needs
 """
 import argparse
 import glob
@@ -12,6 +14,9 @@ import sys
 from pathlib import Path
 
 import ocr_wrapper
+from _engine._platform import variant_dir_name
+
+DEFAULT_OUTPUT_DIR = "ocr_output"
 
 
 def _parse_pages(spec: str) -> set[int]:
@@ -56,21 +61,44 @@ def _render(path: Path, result, fmt: str) -> str:
     return "\n\n".join(page.text for page in result.pages)
 
 
+def _print_platform() -> int:
+    try:
+        name = variant_dir_name()
+    except RuntimeError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    folder = ocr_wrapper._PLATFORMS_DIR / name
+    status = "found" if folder.is_dir() else "MISSING"
+    print(f"platform: {name}")
+    print(f"folder:   {folder} ({status})")
+    return 0 if folder.is_dir() else 1
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="ocr_cli", description="OCR PDF or image files with the local engine."
     )
-    parser.add_argument("inputs", nargs="+", help="PDF/image files (wildcards allowed)")
-    parser.add_argument("-o", "--output",
-                        help="output file (single input) or directory (one file per input); "
-                             "default: stdout")
+    parser.add_argument("inputs", nargs="*", help="PDF/image files (wildcards allowed)")
+    dest = parser.add_mutually_exclusive_group()
+    dest.add_argument("-o", "--output",
+                      help="output file (single input) or directory (one file per input); "
+                           f"default: ./{DEFAULT_OUTPUT_DIR}/")
+    dest.add_argument("--stdout", action="store_true",
+                      help="print results instead of writing files")
     parser.add_argument("-f", "--format", choices=("text", "json"), default="text",
                         help="output format (default: text)")
     parser.add_argument("-p", "--pages", type=_parse_pages,
                         help="PDF pages to process, 1-based, e.g. 1,3-5 (default: all)")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="show engine logs")
+    parser.add_argument("--platform", action="store_true",
+                        help="print which platforms/ folder this machine needs, then exit")
     args = parser.parse_args(argv)
+
+    if args.platform:
+        return _print_platform()
+    if not args.inputs:
+        parser.error("the following arguments are required: inputs")
 
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.WARNING,
                         format="%(levelname)s: %(message)s")
@@ -78,8 +106,13 @@ def main(argv=None) -> int:
         sys.stdout.reconfigure(encoding="utf-8")
 
     files = _expand_inputs(args.inputs)
-    out = Path(args.output) if args.output else None
-    out_is_dir = out is not None and (len(files) > 1 or out.is_dir() or args.output.endswith(("/", "\\")))
+    if args.stdout:
+        out, out_is_dir = None, False
+    elif args.output:
+        out = Path(args.output)
+        out_is_dir = len(files) > 1 or out.is_dir() or args.output.endswith(("/", "\\"))
+    else:
+        out, out_is_dir = Path(DEFAULT_OUTPUT_DIR), True
     if out_is_dir:
         out.mkdir(parents=True, exist_ok=True)
     ext = ".json" if args.format == "json" else ".txt"
