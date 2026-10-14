@@ -47,15 +47,16 @@ def get_engine() -> OcrEngine:
     return _engine
 
 
-def ocr(file_path) -> OcrResult:
+def ocr(file_path, pages=None) -> OcrResult:
     """OCRs a PDF or image file (dispatched by extension). Returns the
     full structured result -- one OcrPage per page, each with its own
-    .text and the blocks/lines under it."""
-    return get_engine().ocr(str(file_path))
+    .text and the blocks/lines under it. `pages` (1-based) limits which
+    PDF pages are processed."""
+    return get_engine().ocr(str(file_path), pages=pages)
 
 
-def extract_text(file_path) -> str:
+def extract_text(file_path, pages=None) -> str:
     """OCRs a PDF or image file and returns the full text, pages joined
     with a blank line -- the common case when you just want the text."""
-    result = ocr(file_path)
+    result = ocr(file_path, pages=pages)
     return "\n\n".join(page.text for page in result.pages)

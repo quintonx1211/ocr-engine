@@ -60,11 +60,14 @@ class OcrEngine:
 
     def _ocr_pdf(self, path: Path, *, pages: Iterable[int] | None = None) -> OcrResult:
         try:
-            import fitz  # PyMuPDF
-        except ImportError as exc:
-            raise ImportError(
-                "PyMuPDF is required for PDF OCR: pip install PyMuPDF"
-            ) from exc
+            import pymupdf as fitz  # PyMuPDF >= 1.24.3
+        except ImportError:
+            try:
+                import fitz  # older PyMuPDF
+            except ImportError as exc:
+                raise ImportError(
+                    "PyMuPDF is required for PDF OCR: pip install PyMuPDF"
+                ) from exc
 
         doc = fitz.open(path)
         page_set = set(pages) if pages is not None else None
