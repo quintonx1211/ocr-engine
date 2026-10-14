@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Test documents (invoices etc. -- may contain sensitive data)
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.tif
+*.tiff
+# ...but keep anything shipped inside the platform bundles
+!platforms/**
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Provenance notes -- internal only, disclose to client later
+_private/

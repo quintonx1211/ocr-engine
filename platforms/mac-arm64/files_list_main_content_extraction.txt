@@ -1,0 +1,2 @@
+content_config.pbtxt
+content_model.tflite
